@@ -219,7 +219,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({ game }) => {
   }, [game]);
 
   /**
-   * Connect canvas event listeners.
+   * Connect canvas event listeners to manage pan & zoom.
    */
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -287,13 +287,93 @@ export const GameCanvas: FC<GameCanvasProps> = ({ game }) => {
     canvas.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      window.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [zoomCanvas, panCanvas]);
+  }, [game, zoomCanvas, panCanvas]);
+
+  /**
+   * Connect canvas event listeners to manage cell interactions.
+   */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      throw new Error('Canvas ref not defined');
+    }
+
+    const renderingContext = canvas.getContext('2d');
+
+    if (!renderingContext) {
+      throw new Error('2D rendering not supported by canvas');
+    }
+
+    const getCellUnderMouse = (mouseX: number, mouseY: number): Cell => {
+      const resolutionRatio =
+        canvas.height / canvas.getBoundingClientRect().height;
+
+      const transform = renderingContext.getTransform();
+      const scaleInverse = 1 / transform.a;
+
+      const x = (mouseX * resolutionRatio - transform.e) * scaleInverse;
+      const y = (mouseY * resolutionRatio - transform.f) * scaleInverse;
+
+      const line = Math.trunc(y / cellSize);
+      const column = Math.trunc(x / cellSize);
+
+      return game.getCell(line, column);
+    };
+
+    let mouseDownOrigin: {
+      x: number;
+      y: number;
+    } | null = null;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      event.preventDefault();
+      mouseDownOrigin = {
+        x: event.offsetX,
+        y: event.offsetY,
+      };
+    };
+
+    const handleMouseUp = (event: MouseEvent) => {
+      event.preventDefault();
+
+      if (!mouseDownOrigin) {
+        return;
+      }
+
+      const distX = mouseDownOrigin.x - event.offsetX;
+      const distY = mouseDownOrigin.y - event.offsetY;
+      const distSquared = distX * distX + distY * distY;
+
+      if (distSquared < 1) {
+        const cell = getCellUnderMouse(event.offsetX, event.offsetY);
+        game.toggleCell(cell.line, cell.column);
+      }
+
+      mouseDownOrigin = null;
+    };
+
+    const handleMouseLeave = (event: MouseEvent) => {
+      event.preventDefault();
+      mouseDownOrigin = null;
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [game, cellSize]);
 
   /**
    * Clear and redraw canvas when transform is updated.
@@ -336,6 +416,11 @@ export const GameCanvas: FC<GameCanvasProps> = ({ game }) => {
 
       setCellSize(newCellSize);
       setCanvasSize(newCellSize * gridSize);
+      setCanvasTransform({
+        x: 0,
+        y: 0,
+        scale: Math.max(gridSize / DefaultViewportSize, 1),
+      });
     };
 
     game.onGridChanged.subscribe(handleGridChanged);
