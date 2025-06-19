@@ -1,4 +1,3 @@
-import type { Cell, Game, OnNewGenerationEvent } from '../../core/game';
 import './GameCanvas.css';
 
 import {
@@ -9,6 +8,8 @@ import {
   useState,
   type FC,
 } from 'react';
+
+import type { Cell, Game, OnNewGenerationEvent } from '../../core/game';
 
 const MaxViewportSize = 16;
 

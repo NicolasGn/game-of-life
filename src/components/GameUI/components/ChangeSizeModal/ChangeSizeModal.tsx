@@ -1,7 +1,8 @@
-import { createPortal } from 'react-dom';
 import './ChangeSizeModal.css';
 
+import { createPortal } from 'react-dom';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+
 import { Game } from '../../../../core/game';
 
 export type ChangeSizeModalHandle = {
