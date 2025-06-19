@@ -7,18 +7,19 @@ import { GameUI } from '../GameUI/GameUI';
 import { useGame } from '../../hooks/useGame';
 
 export const Game: FC = () => {
-  const { game, generationNumber, isRunning, speed } = useGame();
+  const { game, generationNumber, isRunning, speed, size } = useGame();
 
   return (
     <div className="game">
       <GameCanvas game={game} />
       <GameUI
-        generationNumber={generationNumber}
         isRunning={isRunning}
         speed={speed}
+        size={size}
+        generationNumber={generationNumber}
         onStart={() => game.start()}
         onStop={() => game.stop()}
-        onReset={() => game.reset()}
+        onReset={(size) => game.reset(size)}
         onRandomize={() => game.randomize()}
         onChangeSpeed={(value) => game.changeSpeed(value)}
       />

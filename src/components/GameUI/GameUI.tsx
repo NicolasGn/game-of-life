@@ -1,30 +1,39 @@
 import './GameUI.css';
 
-import type { FC } from 'react';
+import { useRef, type FC } from 'react';
+
+import {
+  ChangeSizeModal,
+  type ChangeSizeModalHandle,
+} from './components/ChangeSizeModal/ChangeSizeModal';
 
 const SpeedOptions = [1, 2, 5, 10, 25, 50, 100];
 
 export type GameUIProps = {
   isRunning: boolean;
   speed: number;
+  size: number;
   generationNumber: number;
   onStart: () => void;
   onStop: () => void;
-  onReset: () => void;
+  onReset: (size?: number) => void;
   onRandomize: () => void;
   onChangeSpeed: (value: number) => void;
 };
 
 export const GameUI: FC<GameUIProps> = ({
-  generationNumber,
   isRunning,
   speed,
+  size,
+  generationNumber,
   onStart,
   onStop,
   onReset,
   onRandomize,
   onChangeSpeed,
 }) => {
+  const changeSizeModalRef = useRef<ChangeSizeModalHandle>(null);
+
   return (
     <div className="game-ui">
       <section>
@@ -34,11 +43,17 @@ export const GameUI: FC<GameUIProps> = ({
         ) : (
           <button onClick={onStart}>Start</button>
         )}
-        <button disabled={isRunning} onClick={onReset}>
-          Reset
-        </button>
         <button disabled={isRunning} onClick={onRandomize}>
           Randomize
+        </button>
+        <button disabled={isRunning} onClick={() => onReset()}>
+          Reset
+        </button>
+        <button
+          disabled={isRunning}
+          onClick={() => changeSizeModalRef.current?.open()}
+        >
+          Change size
         </button>
       </section>
 
@@ -48,6 +63,7 @@ export const GameUI: FC<GameUIProps> = ({
           const isCurrentSpeed = option === speed;
           return (
             <button
+              key={option}
               className={isCurrentSpeed ? 'active' : ''}
               disabled={isCurrentSpeed}
               onClick={() => onChangeSpeed(option)}
@@ -57,6 +73,11 @@ export const GameUI: FC<GameUIProps> = ({
           );
         })}
       </section>
+      <ChangeSizeModal
+        ref={changeSizeModalRef}
+        currentSize={size}
+        onConfirm={(value) => onReset(value)}
+      />
     </div>
   );
 };

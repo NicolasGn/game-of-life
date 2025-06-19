@@ -1,0 +1,38 @@
+.change-size-modal {
+  z-index: 1;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.change-size-modal .modal {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+  background: rgb(50, 50, 50);
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #6e6e6e;
+  gap: 1.5rem;
+}
+
+.change-size-modal main {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.change-size-modal footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.change-size-modal .button-confirm {
+  background: rgb(129, 39, 39);
+}

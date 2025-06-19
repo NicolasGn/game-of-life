@@ -330,14 +330,24 @@ export const GameCanvas: FC<GameCanvasProps> = ({ game }) => {
       drawCells([cell], cell.isAlive ? Colors.Cell : Colors.Background);
     };
 
+    const handleReset = () => {
+      const gridSize = game.getSize();
+      const newCellSize = computeCellSize(gridSize);
+
+      setCellSize(newCellSize);
+      setCanvasSize(newCellSize * gridSize);
+    };
+
     game.onGridChanged.subscribe(handleGridChanged);
     game.onNewGeneration.subscribe(handleNewGeneration);
     game.onCellChanged.subscribe(handleCellChanged);
+    game.onReset.subscribe(handleReset);
 
     return () => {
       game.onGridChanged.unsubscribe(handleGridChanged);
       game.onNewGeneration.unsubscribe(handleNewGeneration);
       game.onCellChanged.unsubscribe(handleCellChanged);
+      game.onReset.unsubscribe(handleReset);
     };
   }, [game, drawCells, drawGrid]);
 
