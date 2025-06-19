@@ -1,8 +1,21 @@
+import { EventEmitter } from './events';
+
 export type Cell = {
   id: number;
   line: number;
   column: number;
   isAlive: boolean;
+};
+
+export type OnGridChangedEvent = {
+  size: number;
+  cells: Cell[];
+};
+
+export type OnNewGenerationEvent = {
+  generationNumber: number;
+  bornCells: Cell[];
+  killedCells: Cell[];
 };
 
 export class Game {
@@ -33,6 +46,14 @@ export class Game {
 
   private nextGenerationTimerId: number;
 
+  public readonly onStart: EventEmitter;
+  public readonly onStop: EventEmitter;
+  public readonly onReset: EventEmitter;
+  public readonly onSpeedChanged: EventEmitter<number>;
+  public readonly onGridChanged: EventEmitter<OnGridChangedEvent>;
+  public readonly onCellChanged: EventEmitter<Cell>;
+  public readonly onNewGeneration: EventEmitter<OnNewGenerationEvent>;
+
   constructor(size?: number) {
     this.size = size ?? Game.DefaultSize;
     this.speed = Game.DefaultSpeed;
@@ -41,6 +62,14 @@ export class Game {
     this.isRunning = false;
     this.nextGenerationTimerId = -1;
     this.generationNumber = 0;
+
+    this.onStart = new EventEmitter();
+    this.onStop = new EventEmitter();
+    this.onReset = new EventEmitter();
+    this.onSpeedChanged = new EventEmitter<number>();
+    this.onGridChanged = new EventEmitter<OnGridChangedEvent>();
+    this.onCellChanged = new EventEmitter<Cell>();
+    this.onNewGeneration = new EventEmitter<OnNewGenerationEvent>();
   }
 
   /**
@@ -52,6 +81,8 @@ export class Game {
     }
 
     this.isRunning = true;
+
+    this.onStart.emit();
 
     this.nextGeneration();
   }
@@ -69,6 +100,8 @@ export class Game {
     if (this.nextGenerationTimerId >= 0) {
       clearTimeout(this.nextGenerationTimerId);
     }
+
+    this.onStop.emit();
   }
 
   /**
@@ -83,6 +116,13 @@ export class Game {
     this.cells = this.initCells();
     this.nextGenerationTimerId = -1;
     this.generationNumber = 0;
+
+    this.onReset.emit();
+
+    this.onGridChanged.emit({
+      cells: this.cells,
+      size: this.size,
+    });
   }
 
   /**
@@ -95,6 +135,11 @@ export class Game {
 
     this.cells.forEach((cell) => {
       cell.isAlive = Math.random() > 0.5;
+    });
+
+    this.onGridChanged.emit({
+      cells: this.cells,
+      size: this.size,
     });
   }
 
@@ -113,6 +158,21 @@ export class Game {
     const cell = this.getCell(line, column);
 
     cell.isAlive = !cell.isAlive;
+
+    this.onCellChanged.emit(cell);
+  }
+
+  /**
+   * Change the speed (time between generations).
+   */
+  public changeSpeed(newSpeed: number): void {
+    if (newSpeed < 1.0 || newSpeed > 100.0) {
+      throw new Error('Speed must remain between 1 and 100');
+    }
+
+    this.speed = newSpeed;
+
+    this.onSpeedChanged.emit(this.speed);
   }
 
   /**
@@ -243,6 +303,12 @@ export class Game {
       }
 
       return cell;
+    });
+
+    this.onNewGeneration.emit({
+      bornCells,
+      killedCells,
+      generationNumber: this.generationNumber,
     });
 
     this.nextGenerationTimerId = setTimeout(() => {

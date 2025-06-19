@@ -1,3 +1,4 @@
+import type { Cell, Game, OnNewGenerationEvent } from '../../core/game';
 import './GameCanvas.css';
 
 import {
@@ -9,13 +10,11 @@ import {
   type FC,
 } from 'react';
 
-const GridSize = 128;
-
 const MaxViewportSize = 16;
 
 const DefaultViewportSize = 32;
 
-const CellBorderWidth = 1;
+const ZoomSpeed = 0.001;
 
 const MinCellSize = 8;
 
@@ -27,30 +26,22 @@ const Colors = {
   Grid: '#555',
 } as const;
 
-const Zoom = {
-  Min: 1,
-  Max: Math.max(GridSize / MaxViewportSize, 1),
-  Speed: 0.001,
-} as const;
+const computeCellSize = (gridSize: number) =>
+  Math.max(Math.trunc(window.innerHeight / gridSize), MinCellSize);
 
-const computeCellSize = () =>
-  Math.max(Math.trunc(window.innerHeight / GridSize), MinCellSize);
+export type GameCanvasProps = {
+  game: Game;
+};
 
-export const GameCanvas: FC = () => {
+export const GameCanvas: FC<GameCanvasProps> = ({ game }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [cells] = useState(
-    new Array<boolean>(GridSize * GridSize)
-      .fill(false)
-      .map(() => Math.random() > 0.5)
-  );
-
-  const [cellSize, setCellSize] = useState(computeCellSize());
-  const [canvasSize, setCanvasSize] = useState(cellSize * GridSize);
+  const [cellSize, setCellSize] = useState(computeCellSize(game.getSize()));
+  const [canvasSize, setCanvasSize] = useState(cellSize * game.getSize());
   const [canvasTransform, setCanvasTransform] = useState({
     x: 0,
     y: 0,
-    scale: Math.max(GridSize / DefaultViewportSize, 1),
+    scale: Math.max(game.getSize() / DefaultViewportSize, 1),
   });
 
   /**
@@ -64,45 +55,44 @@ export const GameCanvas: FC = () => {
         throw new Error('Canvas ref not defined');
       }
 
-      const renderingContext = canvas.getContext('2d');
+      const renderingContext = canvas.getContext('2d', { alpha: false });
 
       if (!renderingContext) {
         throw new Error('2D rendering not supported by canvas');
       }
 
-      draw(renderingContext);
+      window.requestAnimationFrame(() => {
+        draw(renderingContext);
+      });
     },
     []
   );
 
   /**
-   * Draw alive or dead cells only.
+   * Draw cells with a given color.
    */
   const drawCells = useCallback(
-    (isAlive: boolean) => {
+    (cells: Cell[], color: string) => {
       render((ctx) => {
-        ctx.lineWidth = CellBorderWidth;
         ctx.strokeStyle = Colors.Grid;
-        ctx.fillStyle = isAlive ? Colors.Cell : Colors.Background;
+        ctx.fillStyle = color;
 
         let shapeCount = 0;
         ctx.beginPath();
 
-        for (let line = 0; line < GridSize; ++line) {
-          for (let column = 0; column < GridSize; ++column) {
-            if (cells[line * GridSize + column] === isAlive) {
-              ctx.rect(column * cellSize, line * cellSize, cellSize, cellSize);
+        for (const cell of cells) {
+          const { column, line } = cell;
 
-              shapeCount += 1;
+          ctx.rect(column * cellSize, line * cellSize, cellSize, cellSize);
 
-              if (shapeCount >= MaxShapePerDrawCall) {
-                ctx.fill();
-                ctx.stroke();
+          shapeCount += 1;
 
-                shapeCount = 0;
-                ctx.beginPath();
-              }
-            }
+          if (shapeCount >= MaxShapePerDrawCall) {
+            ctx.fill();
+            ctx.stroke();
+
+            shapeCount = 0;
+            ctx.beginPath();
           }
         }
 
@@ -112,7 +102,7 @@ export const GameCanvas: FC = () => {
         }
       });
     },
-    [cells, cellSize, render]
+    [cellSize, render]
   );
 
   /**
@@ -124,9 +114,21 @@ export const GameCanvas: FC = () => {
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     });
 
-    drawCells(true);
-    drawCells(false);
-  }, [drawCells, render]);
+    const cells = game.getCells();
+    const aliveCells = new Array<Cell>();
+    const deadCells = new Array<Cell>();
+
+    cells.forEach((cell) => {
+      if (cell.isAlive) {
+        aliveCells.push(cell);
+      } else {
+        deadCells.push(cell);
+      }
+    });
+
+    drawCells(deadCells, Colors.Background);
+    drawCells(aliveCells, Colors.Cell);
+  }, [game, drawCells, render]);
 
   /**
    * Update the canvas transform given a zoom delta and a focal point.
@@ -137,8 +139,8 @@ export const GameCanvas: FC = () => {
         const { x, y, scale } = currentTransform;
 
         const newScale = Math.min(
-          Math.max(scale + delta * Zoom.Speed, Zoom.Min),
-          Zoom.Max
+          Math.max(scale + delta * ZoomSpeed, 1.0),
+          Math.max(game.getSize() / MaxViewportSize, 1)
         );
 
         if (newScale === scale) {
@@ -164,7 +166,7 @@ export const GameCanvas: FC = () => {
         };
       });
     },
-    [canvasSize]
+    [game, canvasSize]
   );
 
   /**
@@ -202,10 +204,11 @@ export const GameCanvas: FC = () => {
    */
   useEffect(() => {
     const handleResize = () => {
-      const newCellSize = computeCellSize();
+      const gridSize = game.getSize();
+      const newCellSize = computeCellSize(gridSize);
 
       setCellSize(newCellSize);
-      setCanvasSize(newCellSize * GridSize);
+      setCanvasSize(newCellSize * gridSize);
     };
 
     window.addEventListener('resize', handleResize);
@@ -213,7 +216,7 @@ export const GameCanvas: FC = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [game]);
 
   /**
    * Connect canvas event listeners.
@@ -299,7 +302,7 @@ export const GameCanvas: FC = () => {
     render((ctx) => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-      ctx.fillStyle = Colors.Cell;
+      ctx.fillStyle = Colors.Background;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
       const { scale, x, y } = canvasTransform;
@@ -311,11 +314,32 @@ export const GameCanvas: FC = () => {
   }, [render, drawGrid, canvasTransform]);
 
   /**
-   * Intial draw.
+   * Connect game event listeners.
    */
   useEffect(() => {
-    drawGrid();
-  }, [drawGrid]);
+    const handleGridChanged = () => {
+      drawGrid();
+    };
+
+    const handleNewGeneration = (event: OnNewGenerationEvent) => {
+      drawCells(event.killedCells, Colors.Background);
+      drawCells(event.bornCells, Colors.Cell);
+    };
+
+    const handleCellChanged = (cell: Cell) => {
+      drawCells([cell], cell.isAlive ? Colors.Cell : Colors.Background);
+    };
+
+    game.onGridChanged.subscribe(handleGridChanged);
+    game.onNewGeneration.subscribe(handleNewGeneration);
+    game.onCellChanged.subscribe(handleCellChanged);
+
+    return () => {
+      game.onGridChanged.unsubscribe(handleGridChanged);
+      game.onNewGeneration.unsubscribe(handleNewGeneration);
+      game.onCellChanged.unsubscribe(handleCellChanged);
+    };
+  }, [game, drawCells, drawGrid]);
 
   return (
     <canvas
