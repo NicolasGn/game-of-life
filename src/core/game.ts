@@ -126,7 +126,6 @@ export class Game {
 
     this.size = size ?? this.size;
     this.cells = this.initCells();
-    this.nextGenerationTimerId = -1;
     this.generationNumber = 0;
 
     this.onReset.emit();
@@ -187,6 +186,42 @@ export class Game {
     this.speed = newSpeed;
 
     this.onSpeedChanged.emit(this.speed);
+  }
+
+  /**
+   * Export the current grid state in JSON format.
+   */
+  public exportToJson(): string {
+    return JSON.stringify({
+      size: this.size,
+      cells: this.cells,
+    });
+  }
+
+  /**
+   * Load grid from JSON content.
+   */
+  public loadFromJson(json: string): void {
+    if (this.isRunning) {
+      return;
+    }
+
+    const data = JSON.parse(json);
+
+    if (!('cells' in data && 'size' in data)) {
+      throw new Error('Invalid JSON file');
+    }
+
+    this.size = data.size;
+    this.cells = data.cells;
+    this.generationNumber = 0;
+
+    this.onReset.emit();
+
+    this.onGridChanged.emit({
+      cells: this.cells,
+      size: this.size,
+    });
   }
 
   /**

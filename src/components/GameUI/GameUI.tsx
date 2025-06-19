@@ -19,6 +19,8 @@ export type GameUIProps = {
   onReset: (size?: number) => void;
   onRandomize: () => void;
   onChangeSpeed: (value: number) => void;
+  onExport: () => void;
+  onLoad: () => void;
 };
 
 export const GameUI: FC<GameUIProps> = ({
@@ -31,6 +33,8 @@ export const GameUI: FC<GameUIProps> = ({
   onReset,
   onRandomize,
   onChangeSpeed,
+  onExport,
+  onLoad,
 }) => {
   const changeSizeModalRef = useRef<ChangeSizeModalHandle>(null);
 
@@ -73,6 +77,17 @@ export const GameUI: FC<GameUIProps> = ({
           );
         })}
       </section>
+
+      <section>
+        <h3>JSON</h3>
+        <button disabled={isRunning} onClick={onExport}>
+          Export
+        </button>
+        <button disabled={isRunning} onClick={onLoad}>
+          Load
+        </button>
+      </section>
+
       <ChangeSizeModal
         ref={changeSizeModalRef}
         currentSize={size}

@@ -95,6 +95,34 @@ describe('given a 3x3 game', () => {
     ]);
   });
 
+  it('should export the grid to JSON', () => {
+    const json = game.exportToJson();
+
+    expect(json).toEqual(
+      JSON.stringify({
+        size: game.getSize(),
+        cells: game.getCells(),
+      })
+    );
+  });
+
+  it('should load a grid from JSON', () => {
+    const previousSize = game.getSize();
+    const previousCells = game.getCells();
+
+    game.reset(10);
+
+    game.loadFromJson(
+      JSON.stringify({
+        size: previousSize,
+        cells: previousCells,
+      })
+    );
+
+    expect(game.getSize()).toEqual(previousSize);
+    expect(game.getCells()).toEqual(previousCells);
+  });
+
   it('should reset the game with a new size', () => {
     game.reset(4);
 
