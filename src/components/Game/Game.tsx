@@ -1,10 +1,13 @@
-import type { FC } from 'react';
 import './Game.css';
+
+import type { FC } from 'react';
+
+import { GameCanvas } from '../GameCanvas/GameCanvas';
 
 export const Game: FC = () => {
   return (
     <div className="game">
-      <h1>Game of Life</h1>
+      <GameCanvas />
     </div>
   );
 };
