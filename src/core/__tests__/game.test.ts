@@ -11,7 +11,7 @@ describe('given a 3x3 game', () => {
 
   it('should be correctly initialized', () => {
     expect(game.getSize()).toEqual(size);
-    expect(game.getSpeed()).toEqual(Game.DefaultSpeed);
+    expect(game.getSpeed()).toEqual(Game.MinSpeed);
     expect(game.getIsRunning()).toEqual(false);
     expect(game.getGenerationNumber()).toEqual(0);
 
@@ -96,14 +96,20 @@ describe('given a 3x3 game', () => {
   });
 
   it('should reset the game with a new size', () => {
-    game.reset(2);
+    game.reset(4);
 
-    expect(game.getSize()).toEqual(2);
-    expect(game.getCells().map((cell) => cell.id)).toEqual([0, 1, 2, 3]);
-    expect(game.getCells().map((cell) => cell.line)).toEqual([0, 0, 1, 1]);
-    expect(game.getCells().map((cell) => cell.column)).toEqual([0, 1, 0, 1]);
+    expect(game.getSize()).toEqual(4);
+    expect(game.getCells().map((cell) => cell.id)).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    ]);
+    expect(game.getCells().map((cell) => cell.line)).toEqual([
+      0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3,
+    ]);
+    expect(game.getCells().map((cell) => cell.column)).toEqual([
+      0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3,
+    ]);
     expect(game.getCells().map((cell) => cell.isAlive)).toEqual(
-      new Array<boolean>(4).fill(false)
+      new Array<boolean>(16).fill(false)
     );
   });
 });

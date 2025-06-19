@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import './ChangeSizeModal.css';
 
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import { Game } from '../../../../core/game';
 
 export type ChangeSizeModalHandle = {
   open: () => void;
@@ -40,7 +41,17 @@ export const ChangeSizeModal = forwardRef(
               name="grid-size"
               type="number"
               value={size}
-              onChange={(e) => setSize(e.currentTarget.valueAsNumber)}
+              min={Game.MinSize}
+              max={Game.MaxSize}
+              onChange={(e) => {
+                const value = e.currentTarget.valueAsNumber;
+
+                if (value < Game.MinSize || value > Game.MaxSize) {
+                  return;
+                }
+
+                setSize(value);
+              }}
             />
           </main>
           <footer>

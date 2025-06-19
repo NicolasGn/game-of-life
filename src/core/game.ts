@@ -19,9 +19,15 @@ export type OnNewGenerationEvent = {
 };
 
 export class Game {
+  public static readonly MinSize = 3;
+
+  public static readonly MaxSize = 1024;
+
   public static readonly DefaultSize = 128;
 
-  public static readonly DefaultSpeed = 1.0;
+  public static readonly MinSpeed = 1.0;
+
+  public static readonly MaxSpeed = 100.0;
 
   private static readonly NeighbourOffsets = [
     [-1, 0],
@@ -56,7 +62,7 @@ export class Game {
 
   constructor(size?: number) {
     this.size = size ?? Game.DefaultSize;
-    this.speed = Game.DefaultSpeed;
+    this.speed = Game.MinSpeed;
 
     this.cells = this.initCells();
     this.isRunning = false;
@@ -110,6 +116,12 @@ export class Game {
   public reset(size?: number): void {
     if (this.isRunning) {
       return;
+    }
+
+    if (size && (size < Game.MinSize || size > Game.MaxSize)) {
+      throw new Error(
+        `Game size must remain between ${Game.MinSize} and ${Game.MaxSize}`
+      );
     }
 
     this.size = size ?? this.size;
@@ -166,8 +178,10 @@ export class Game {
    * Change the speed (time between generations).
    */
   public changeSpeed(newSpeed: number): void {
-    if (newSpeed < 1.0 || newSpeed > 100.0) {
-      throw new Error('Speed must remain between 1 and 100');
+    if (newSpeed < Game.MinSpeed || newSpeed > Game.MaxSpeed) {
+      throw new Error(
+        `Game speed must remain between ${Game.MinSpeed} and ${Game.MaxSpeed}`
+      );
     }
 
     this.speed = newSpeed;
