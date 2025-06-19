@@ -1,4 +1,5 @@
 .game-canvas {
   height: 100%;
   aspect-ratio: 1 /1;
+  image-rendering: pixelated;
 }
